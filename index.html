@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的工作小助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f5f5f2; color: #2c2c2a; font-size: 14px; line-height: 1.6; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 20px; font-weight: 500; }
+  h1 span { font-size: 12px; color: #888780; font-weight: 400; margin-left: 8px; }
+  .tabs { display: flex; gap: 6px; background: #fff; border: 1px solid #e3e2dc; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+  .tabs button { flex: 1; border: none; background: transparent; padding: 9px 4px; font-size: 14px; cursor: pointer; border-radius: 8px; color: #5f5e5a; font-family: inherit; }
+  .tabs button.active { background: #3c3489; color: #fff; font-weight: 500; }
+  .card { background: #fff; border: 1px solid #e3e2dc; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; font-weight: 500; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: #534ab7; }
+  label { display: block; font-size: 12px; color: #888780; margin-bottom: 4px; }
+  input[type=text], input[type=date], input[type=number], select, textarea {
+    width: 100%; border: 1px solid #d3d1c7; border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit; background: #fff;
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid #afa9ec; }
+  textarea { resize: vertical; min-height: 72px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 140px; }
+  .btn { border: 1px solid #b4b2a9; background: #fff; border-radius: 8px; padding: 8px 18px; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .btn:hover { background: #f1efe8; }
+  .btn.primary { background: #534ab7; border-color: #534ab7; color: #fff; }
+  .btn.primary:hover { background: #3c3489; }
+  .btn.small { padding: 4px 10px; font-size: 12px; }
+  .btn.danger { color: #a32d2d; border-color: #f0d5d5; }
+  .progress-outer { background: #eeece6; border-radius: 6px; height: 10px; overflow: hidden; flex: 1; }
+  .progress-inner { background: #5dcaa5; height: 100%; border-radius: 6px; transition: width .3s; }
+  .proj { border: 1px solid #e3e2dc; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+  .proj-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .proj-head .name { font-weight: 500; font-size: 15px; }
+  .proj-head .pct { font-size: 13px; color: #0f6e56; font-weight: 500; min-width: 40px; text-align: right; }
+  .task { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px dashed #eeece6; }
+  .task:last-child { border-bottom: none; }
+  .task input[type=checkbox] { width: 16px; height: 16px; accent-color: #534ab7; cursor: pointer; }
+  .task .txt { flex: 1; }
+  .task.done .txt { color: #b4b2a9; text-decoration: line-through; }
+  .task .del { color: #c9c8c0; cursor: pointer; font-size: 13px; }
+  .task .del:hover { color: #a32d2d; }
+  .log-entry { border-left: 3px solid #afa9ec; background: #faf9f6; border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 10px; }
+  .log-entry .meta { font-size: 12px; color: #888780; margin-bottom: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .log-entry .body { white-space: pre-wrap; }
+  .date-group { font-weight: 500; margin: 18px 0 8px; font-size: 14px; color: #3c3489; }
+  .week-report { background: #faf9f6; border: 1px solid #e3e2dc; border-radius: 10px; padding: 16px; white-space: pre-wrap; font-size: 13px; max-height: 420px; overflow: auto; }
+  .hint { font-size: 12px; color: #888780; margin-top: 8px; }
+  .empty { text-align: center; color: #b4b2a9; padding: 30px 0; font-size: 13px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat { background: #f1efe8; border-radius: 10px; padding: 14px; }
+  .stat .num { font-size: 24px; font-weight: 500; color: #3c3489; }
+  .stat .lbl { font-size: 12px; color: #888780; }
+  .toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: #3c3489; color: #fff; padding: 10px 22px; border-radius: 20px; font-size: 13px; display: none; z-index: 99; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>我的工作小助手 <span>文档整理 · 项目进度 · 周报生成</span></h1>
+  </header>
+
+  <div class="tabs">
+    <button class="active" onclick="switchTab(0)">✏️ 今日记录</button>
+    <button onclick="switchTab(1)">📊 项目进度</button>
+    <button onclick="switchTab(2)">📄 周报生成</button>
+    <button onclick="switchTab(3)">💾 数据备份</button>
+  </div>
+
+  <!-- 今日记录 -->
+  <div class="tab" id="tab0">
+    <div class="card">
+      <h2><span class="dot"></span>记一笔今天的工作</h2>
+      <div class="row">
+        <div><label>日期</label><input type="date" id="logDate"></div>
+        <div><label>所属项目</label><select id="logProject"></select></div>
+        <div><label>花费时间（小时，可不填）</label><input type="number" id="logHours" step="0.5" min="0" placeholder="如 2"></div>
+      </div>
+      <div style="margin-top:12px">
+        <label>做了什么</label>
+        <textarea id="logText" placeholder="例如：完成了项目方案的第二部分，和同事确认了需求细节……"></textarea>
+      </div>
+      <div style="margin-top:12px; text-align:right">
+        <button class="btn primary" onclick="addLog()">保存这条记录</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span>最近的工作记录</h2>
+      <div id="logList"></div>
+    </div>
+  </div>
+
+  <!-- 项目进度 -->
+  <div class="tab" id="tab1" style="display:none">
+    <div class="card">
+      <h2><span class="dot"></span>新建一个项目</h2>
+      <div class="row">
+        <div style="flex:2"><label>项目名称</label><input type="text" id="projName" placeholder="例如：毕业论文、装修、求职计划"></div>
+        <div><label>截止日期（可不填）</label><input type="date" id="projDue"></div>
+      </div>
+      <div style="margin-top:12px; text-align:right">
+        <button class="btn primary" onclick="addProject()">创建项目</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span>我的项目</h2>
+      <div id="projList"></div>
+      <div class="empty" id="projEmpty" style="display:none">还没有项目，先在上面创建一个吧</div>
+    </div>
+  </div>
+
+  <!-- 周报生成 -->
+  <div class="tab" id="tab2" style="display:none">
+    <div class="card">
+      <h2><span class="dot"></span>一键生成周报草稿</h2>
+      <div class="row" style="align-items:flex-end">
+        <div><label>选择一周</label><input type="date" id="weekPick" onchange="renderReport()"></div>
+        <div style="flex:2; text-align:right">
+          <button class="btn" onclick="shiftWeek(-7)">← 上一周</button>
+          <button class="btn" onclick="shiftWeek(7)">下一周 →</button>
+          <button class="btn primary" onclick="copyReport()">复制周报</button>
+          <button class="btn" onclick="downloadReport()">下载为文件</button>
+        </div>
+      </div>
+      <div class="hint">生成的周报会汇总这一周的工作记录和各项目进度，复制后可以直接发给领导或存档。</div>
+    </div>
+    <div class="card">
+      <div class="week-report" id="reportOut"></div>
+    </div>
+  </div>
+
+  <!-- 数据备份 -->
+  <div class="tab" id="tab3" style="display:none">
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="card">
+      <h2><span class="dot"></span>备份与恢复</h2>
+      <p style="font-size:13px; color:#5f5e5a; margin-bottom:14px">
+        你的所有数据都自动保存在这台电脑的浏览器里。<b>建议每周点一次「导出备份」</b>，
+        会下载一个备份文件，把它存到安全的地方（或者发给你的 AI 助手帮你传到 GitHub）。
+        换电脑或误删时，用「导入恢复」就能全部找回。
+      </p>
+      <button class="btn primary" onclick="exportData()">📤 导出备份文件</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()">📥 导入恢复</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+    <div class="card">
+      <h2><span class="dot"></span>危险操作</h2>
+      <button class="btn danger" onclick="clearAll()">清空全部数据</button>
+      <div class="hint">清空前请务必先导出备份，此操作无法撤销。</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const KEY = "work_helper_data_v1";
+let data = load();
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY));
+    if (d && Array.isArray(d.projects) && Array.isArray(d.logs)) return d;
+  } catch (e) {}
+  return { projects: [], logs: [] };
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.style.display = "block";
+  setTimeout(() => t.style.display = "none", 2200);
+}
+function today() { return new Date().toISOString().slice(0, 10); }
+function fmt(d) {
+  const dt = new Date(d + "T00:00:00");
+  const wd = ["日","一","二","三","四","五","六"][dt.getDay()];
+  return `${d}（周${wd}）`;
+}
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ---------- 标签页 ---------- */
+function switchTab(i) {
+  document.querySelectorAll(".tab").forEach((el, k) => el.style.display = k === i ? "" : "none");
+  document.querySelectorAll(".tabs button").forEach((b, k) => b.classList.toggle("active", k === i));
+  if (i === 2) renderReport();
+  if (i === 3) renderStats();
+}
+
+/* ---------- 项目 ---------- */
+function addProject() {
+  const name = document.getElementById("projName").value.trim();
+  const due = document.getElementById("projDue").value;
+  if (!name) { toast("请填写项目名称"); return; }
+  if (data.projects.some(p => p.name === name)) { toast("已有同名项目啦"); return; }
+  data.projects.push({ name, due, tasks: [] });
+  save();
+  document.getElementById("projName").value = "";
+  document.getElementById("projDue").value = "";
+  toast("项目创建成功 ✅");
+  renderProjects(); renderProjectOptions();
+}
+function addTask(pi) {
+  const input = document.getElementById("taskInput" + pi);
+  const txt = input.value.trim();
+  if (!txt) return;
+  data.projects[pi].tasks.push({ txt, done: false });
+  save(); input.value = ""; renderProjects();
+}
+function toggleTask(pi, ti) {
+  data.projects[pi].tasks[ti].done = !data.projects[pi].tasks[ti].done;
+  save(); renderProjects();
+}
+function delTask(pi, ti) {
+  data.projects[pi].tasks.splice(ti, 1);
+  save(); renderProjects();
+}
+function delProject(pi) {
+  if (!confirm(`确定删除项目「${data.projects[pi].name}」吗？项目下的任务会一起删除（工作记录不受影响）。`)) return;
+  data.projects.splice(pi, 1);
+  save(); renderProjects(); renderProjectOptions();
+}
+function projPercent(p) {
+  if (!p.tasks.length) return 0;
+  return Math.round(p.tasks.filter(t => t.done).length / p.tasks.length * 100);
+}
+function renderProjects() {
+  const box = document.getElementById("projList");
+  document.getElementById("projEmpty").style.display = data.projects.length ? "none" : "";
+  box.innerHTML = data.projects.map((p, pi) => {
+    const pct = projPercent(p);
+    const due = p.due ? `<span style="font-size:12px;color:#888780">截止：${p.due}</span>` : "";
+    const tasks = p.tasks.map((t, ti) => `
+      <div class="task ${t.done ? "done" : ""}">
+        <input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTask(${pi},${ti})">
+        <span class="txt">${esc(t.txt)}</span>
+        <span class="del" onclick="delTask(${pi},${ti})">✕</span>
+      </div>`).join("");
+    return `
+    <div class="proj">
+      <div class="proj-head">
+        <span class="name">${esc(p.name)}</span>${due}
+        <span style="flex:1"></span>
+        <div class="progress-outer"><div class="progress-inner" style="width:${pct}%"></div></div>
+        <span class="pct">${pct}%</span>
+        <button class="btn small danger" onclick="delProject(${pi})">删除</button>
+      </div>
+      <div style="margin-top:8px">${tasks || '<div class="hint">还没有任务，在下面添加第一步要做的事</div>'}</div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input type="text" id="taskInput${pi}" placeholder="添加任务，如：查资料 / 写初稿 / 发给领导审阅" onkeydown="if(event.key==='Enter')addTask(${pi})">
+        <button class="btn small" onclick="addTask(${pi})">添加</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+function renderProjectOptions() {
+  const sel = document.getElementById("logProject");
+  const opts = data.projects.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join("");
+  sel.innerHTML = `<option value="">（日常杂事，不归属项目）</option>` + opts;
+}
+
+/* ---------- 工作记录 ---------- */
+function addLog() {
+  const date = document.getElementById("logDate").value || today();
+  const proj = document.getElementById("logProject").value;
+  const hours = document.getElementById("logHours").value;
+  const text = document.getElementById("logText").value.trim();
+  if (!text) { toast("写点什么再保存吧"); return; }
+  data.logs.push({ date, proj, hours: hours ? parseFloat(hours) : null, text });
+  save();
+  document.getElementById("logText").value = "";
+  document.getElementById("logHours").value = "";
+  toast("记录已保存 ✅");
+  renderLogs();
+}
+function delLog(i) {
+  if (!confirm("删除这条记录？")) return;
+  data.logs.splice(i, 1);
+  save(); renderLogs();
+}
+function renderLogs() {
+  const box = document.getElementById("logList");
+  if (!data.logs.length) {
+    box.innerHTML = '<div class="empty">还没有记录，今天做了什么？写在上面保存一条吧</div>';
+    return;
+  }
+  const sorted = data.logs.map((l, i) => ({ l, i })).sort((a, b) => b.l.date.localeCompare(a.l.date) || b.i - a.i);
+  let html = "", lastDate = "";
+  for (const { l, i } of sorted) {
+    if (l.date !== lastDate) { html += `<div class="date-group">${fmt(l.date)}</div>`; lastDate = l.date; }
+    html += `
+    <div class="log-entry">
+      <div class="meta">
+        <span>${l.proj ? "📁 " + esc(l.proj) : "🗂 日常"}</span>
+        ${l.hours ? `<span>⏱ ${l.hours} 小时</span>` : ""}
+        <span style="flex:1"></span>
+        <span class="del" style="cursor:pointer" onclick="delLog(${i})">删除</span>
+      </div>
+      <div class="body">${esc(l.text)}</div>
+    </div>`;
+  }
+  box.innerHTML = html;
+}
+
+/* ---------- 周报 ---------- */
+function mondayOf(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = (d.getDay() + 6) % 7; // 周一=0
+  d.setDate(d.getDate() - day);
+  return d;
+}
+function shiftWeek(days) {
+  const el = document.getElementById("weekPick");
+  const d = new Date(el.value + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  el.value = d.toISOString().slice(0, 10);
+  renderReport();
+}
+function renderReport() {
+  const pick = document.getElementById("weekPick");
+  if (!pick.value) pick.value = today();
+  const mon = mondayOf(pick.value);
+  const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+  const from = mon.toISOString().slice(0, 10), to = sun.toISOString().slice(0, 10);
+  const logs = data.logs.filter(l => l.date >= from && l.date <= to).sort((a, b) => a.date.localeCompare(b.date));
+  let out = `# 周报（${from} ~ ${to}）\n\n`;
+  if (!logs.length) {
+    out += "（这一周还没有工作记录）";
+  } else {
+    let totalH = 0, cur = "";
+    for (const l of logs) {
+      if (l.date !== cur) { out += `## ${fmt(l.date)}\n`; cur = l.date; }
+      out += `- ${l.proj ? `【${l.proj}】` : ""}${l.text.replace(/\n/g, "；")}\n`;
+      if (l.hours) totalH += l.hours;
+    }
+    if (totalH) out += `\n本周共投入约 ${totalH} 小时。\n`;
+  }
+  if (data.projects.length) {
+    out += `\n## 项目进度\n`;
+    for (const p of data.projects) {
+      const done = p.tasks.filter(t => t.done).length;
+      out += `- ${p.name}：${p.tasks.length ? `${done}/${p.tasks.length} 项完成（${projPercent(p)}%）${p.due ? `，截止 ${p.due}` : ""}` : "暂无任务"}\n`;
+    }
+  }
+  document.getElementById("reportOut").textContent = out;
+  return out;
+}
+function copyReport() {
+  const text = renderReport();
+  navigator.clipboard.writeText(text).then(
+    () => toast("周报已复制，去粘贴吧 ✅"),
+    () => {
+      const ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove();
+      toast("周报已复制 ✅");
+    }
+  );
+}
+function downloadReport() {
+  const text = renderReport();
+  const blob = new Blob([text], { type: "text/markdown" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `周报_${today()}.md`;
+  a.click();
+  toast("周报文件已下载 ✅");
+}
+
+/* ---------- 备份 ---------- */
+function renderStats() {
+  const totalH = data.logs.reduce((s, l) => s + (l.hours || 0), 0);
+  const doneT = data.projects.reduce((s, p) => s + p.tasks.filter(t => t.done).length, 0);
+  const allT = data.projects.reduce((s, p) => s + p.tasks.length, 0);
+  const stats = [
+    [data.projects.length, "个项目"],
+    [data.logs.length, "条工作记录"],
+    [Math.round(totalH * 10) / 10, "小时总投入"],
+    [`${doneT}/${allT}`, "任务完成"],
+  ];
+  document.getElementById("statGrid").innerHTML = stats.map(([n, l]) =>
+    `<div class="stat"><div class="num">${n}</div><div class="lbl">${l}</div></div>`).join("");
+}
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `工作数据备份_${today()}.json`;
+  a.click();
+  toast("备份文件已下载，请妥善保存 ✅");
+}
+function importData(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!Array.isArray(d.projects) || !Array.isArray(d.logs)) throw new Error();
+      if (!confirm(`将导入 ${d.projects.length} 个项目、${d.logs.length} 条记录，并覆盖当前数据，确定吗？`)) return;
+      data = d; save();
+      renderAll();
+      toast("数据恢复成功 ✅");
+    } catch (e) { toast("文件格式不对，导入失败"); }
+  };
+  reader.readAsText(file);
+  ev.target.value = "";
+}
+function clearAll() {
+  if (!confirm("真的要清空全部数据吗？请先确认已导出备份！")) return;
+  if (!confirm("最后一次确认：清空后无法恢复。确定？")) return;
+  data = { projects: [], logs: [] };
+  save(); renderAll();
+  toast("已清空");
+}
+
+/* ---------- 初始化 ---------- */
+function renderAll() {
+  document.getElementById("logDate").value = today();
+  renderProjectOptions(); renderProjects(); renderLogs();
+}
+renderAll();
+</script>
+</body>
+</html>
